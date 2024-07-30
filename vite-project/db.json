@@ -8,12 +8,27 @@
     {
       "id": "2",
       "content": "Browser can execute only JavaScript",
-      "important": false
+      "important": true
     },
     {
       "id": "3",
       "content": "GET and POST are the most important methods of HTTP protocol",
       "important": true
+    },
+    {
+      "id": "4",
+      "content": "a new note...",
+      "important": true
+    },
+    {
+      "id": "5",
+      "content": "aaadadadadada",
+      "important": true
+    },
+    {
+      "id": "6",
+      "content": "asdasdadadad",
+      "important": false
     }
   ]
 }
