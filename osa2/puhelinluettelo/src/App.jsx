@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import contactService from "./services/contacts";
 
-const Contact = ({ person }) => {
+const Contact = ({ person, handleDelete }) => {
   return (
     <div>
       <p>
-        {person.name} {person.number}
+        {person.name} {person.number}{" "}
+        <button onClick={() => handleDelete(person.id)}>Delete</button>
       </p>
     </div>
   );
@@ -41,18 +42,30 @@ const AddForm = ({
   );
 };
 
-const Contacts = ({ filterText, persons }) => {
+const Contacts = ({ filterText, persons, handleDelete }) => {
   return (
     <div>
       {filterText.trim() === ""
-        ? persons.map((person) => <Contact key={person.name} person={person} />)
+        ? persons.map((person) => (
+            <Contact
+              key={person.name}
+              person={person}
+              handleDelete={handleDelete}
+            />
+          ))
         : persons
             .filter((person) =>
               person.name
                 .toLowerCase()
                 .includes(filterText.trim().toLowerCase())
             )
-            .map((person) => <Contact key={person.name} person={person} />)}
+            .map((person) => (
+              <Contact
+                key={person.name}
+                person={person}
+                handleDelete={handleDelete}
+              />
+            ))}
     </div>
   );
 };
@@ -64,10 +77,20 @@ const App = () => {
   const [filterText, setFilterText] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:3001/persons").then((response) => {
-      setPersons(response.data);
+    contactService.getContacts().then((response) => {
+      setPersons(response);
     });
   }, []);
+
+  const handleUpdate = (oldPerson) => {
+    const updatedPerson = { ...oldPerson, number: newNumber };
+    contactService.updateContact(oldPerson.id, updatedPerson);
+    setPersons(
+      persons.map((person) => {
+        return person.id === oldPerson.id ? updatedPerson : person;
+      })
+    );
+  };
 
   const handleAddPerson = (event) => {
     event.preventDefault();
@@ -85,16 +108,45 @@ const App = () => {
         numberIsInList = true;
       }
     });
-    if (nameIsInList || numberIsInList) {
+    if (numberIsInList) {
       setNewName("");
       setNewNumber("");
-      return nameIsInList
-        ? alert(`${newName} is already in contacts`)
-        : alert(`${newNumber} is already in contacts`);
+      return alert(`${newNumber} is already in contacts`);
     }
-    setPersons(persons.concat({ name: newName, number: newNumber }));
-    setNewName("");
-    setNewNumber("");
+    if (nameIsInList) {
+      if (
+        window.confirm(`${newName} is already in list. Replace their number?`)
+      ) {
+        handleUpdate(persons.find((person) => person.name === newName));
+        setNewName("");
+        setNewNumber("");
+        return;
+      } else {
+        setNewName("");
+        setNewNumber("");
+        return;
+      }
+    }
+    contactService
+      .createContact({ name: newName, number: newNumber })
+      .then((returnedPerson) => {
+        setPersons(persons.concat(returnedPerson));
+        setNewName("");
+        setNewNumber("");
+      });
+  };
+
+  const handleDelete = (id) => {
+    if (
+      window.confirm(
+        `Delete ${persons.find((person) => person.id === id).name}`
+      )
+    )
+      contactService.deleteContact(id).then((deletedPerson) => {
+        setPersons((oldList) => {
+          return oldList.filter((person) => person.id !== deletedPerson.id);
+        });
+      });
   };
 
   const handleNameChange = (event) => setNewName(event.target.value);
@@ -114,7 +166,11 @@ const App = () => {
         newNumber={newNumber}
       />
       <h2>Numbers</h2>
-      <Contacts filterText={filterText} persons={persons} />
+      <Contacts
+        filterText={filterText}
+        persons={persons}
+        handleDelete={handleDelete}
+      />
     </div>
   );
 };
