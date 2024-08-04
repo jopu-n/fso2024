@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import contactService from "./services/contacts";
 
+const Notification = ({ message }) => {
+  if (message === "") {
+    return null;
+  }
+
+  return <div className="notification">{message}</div>;
+};
+
 const Contact = ({ person, handleDelete }) => {
   return (
     <div>
@@ -75,6 +83,7 @@ const App = () => {
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [filterText, setFilterText] = useState("");
+  const [notificationMessage, setNotificationMessage] = useState("");
 
   useEffect(() => {
     contactService.getContacts().then((response) => {
@@ -84,12 +93,21 @@ const App = () => {
 
   const handleUpdate = (oldPerson) => {
     const updatedPerson = { ...oldPerson, number: newNumber };
-    contactService.updateContact(oldPerson.id, updatedPerson);
-    setPersons(
-      persons.map((person) => {
-        return person.id === oldPerson.id ? updatedPerson : person;
+    contactService
+      .updateContact(oldPerson.id, updatedPerson)
+      .then((returnedPerson) => {
+        setPersons(
+          persons.map((person) => {
+            return person.id === oldPerson.id ? returnedPerson : person;
+          })
+        );
       })
-    );
+      .catch((error) => {
+        setNotificationMessage(`${newName}'s number has been changed`);
+        setTimeout(() => {
+          setNotificationMessage("");
+        }, 5000);
+      });
   };
 
   const handleAddPerson = (event) => {
@@ -120,6 +138,10 @@ const App = () => {
         handleUpdate(persons.find((person) => person.name === newName));
         setNewName("");
         setNewNumber("");
+        setNotificationMessage(`${newName}'s number has been changed`);
+        setTimeout(() => {
+          setNotificationMessage("");
+        }, 5000);
         return;
       } else {
         setNewName("");
@@ -133,6 +155,10 @@ const App = () => {
         setPersons(persons.concat(returnedPerson));
         setNewName("");
         setNewNumber("");
+        setNotificationMessage(`Added ${returnedPerson.name}`);
+        setTimeout(() => {
+          setNotificationMessage("");
+        }, 5000);
       });
   };
 
@@ -146,6 +172,10 @@ const App = () => {
         setPersons((oldList) => {
           return oldList.filter((person) => person.id !== deletedPerson.id);
         });
+        setNotificationMessage(`Deleted ${deletedPerson.name}`);
+        setTimeout(() => {
+          setNotificationMessage("");
+        }, 5000);
       });
   };
 
@@ -156,6 +186,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} />
       <TextFilter filterText={filterText} handleFilterText={handleFilterText} />
       <h2>Add a new</h2>
       <AddForm
